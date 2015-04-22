@@ -1,0 +1,5 @@
+Skin conductance response - detect resistance over an area of skin
+skin surface temp - thermometer
+Heart rate - pulse oximeter
+Respiratory rate - round waist expandy ldr thing
+
