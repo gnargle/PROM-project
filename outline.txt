@@ -1,0 +1,22 @@
+calibration_func
+interview_func
+
+while True:
+	key = check_key_c
+	if key == i:
+		return
+	calibrate_rr
+	calibrate_sc
+
+while True:  ## for interview
+	key = check_key_i (use keytest)
+	if key == c:
+		return
+	check_button_presses
+	temp = check_temp
+	set_leds(temp)
+	check_hr
+	check_rr
+	check_sc
+	
+	
