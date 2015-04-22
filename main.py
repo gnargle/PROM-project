@@ -1,6 +1,27 @@
+#####################################################################
+#					Raspberry Pi Polygraph controller				#
+#																	#
+#		All code and hardware by Nicholas Allen and Antony Dyer		#
+#																	#
+#####################################################################
+
+'''
+###############################################
+CHANGELOG
+###############################################
+22/04/15, 18:39
+*Cleaned up the pasted LED thermometer code - there'd been some weird corruption
+leading to lines being repeated.
+*Added the read_i2c() func. This takes a hex address as input and reads the data from I2C
+using that address. It is currently used in all the check and calibrate functions, albeit
+with arbitrary hex values.
+Added some quick checking print statements to make sure the loop and key-based exits are working
+'''
+
 ## Imports
 import thread
 import time
+import RPI.GPIO as GPIO
  
  
 try:
@@ -17,21 +38,46 @@ except ImportError:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
 
+## Set up GPIO
+
+GPIO.setwarnings(False) 		#disable runtime warnings
+GPIO.setmode(GPIO.BCM) 			#use Broadcom GPIO names
+
+GPIO.setup(5, GPIO.OUT)			#set pins 5, 6, 12, 13, 16, 19, 20 and 26 as output
+GPIO.setup(6, GPIO.OUT)			# these correspond to LEDs 0-7, respectively
+GPIO.setup(12, GPIO.OUT)
+GPIO.setup(13, GPIO.OUT)
+GPIO.setup(16, GPIO.OUT)
+GPIO.setup(19, GPIO.OUT)
+GPIO.setup(20, GPIO.OUT)
+GPIO.setup(26, GPIO.OUT)
+
 ##function definitions
+
+def read_i2c(hex_address):
+	bus.write_byte( I2C_ADDR, 0x20 )	
+	tmp = bus.read_word_data( I2C_ADDR, hex_address )
+	tmpLOW = hex(tmp)[2]
+	tmpHIGH = hex(tmp)[3]
+	reorderedtmp = tmpHIGH + tmpLOW
+	tmp = int(reorderedtmp, 16)
+	tmp = tmp & 4095 
+	return tmp
 
 def calibration_mode():
 	while True:
 		key = check_key()
 		if key == "i":
-			return
+		    return
 		calibrate_respiratory()
 		calibrate_skin_conduct()
+		time.sleep(1)
 
 def interview_mode():
 	while True:
 		key = check_key()
-		if key == "c"
-			return
+		if key == "c":
+		    return
 		check_button_presses()
 		temp = check_temp()
 		temp_monitor_LED(temp)
@@ -40,26 +86,32 @@ def interview_mode():
 		check_skin_conductance()
 
 def calibrate_respiratory():
-	pass
+	print "resp calibration func working"
+	read_i2c(0x01)
 
 def calibrate_skin_conduct():
-	pass
+	print "skin calibration func working"
+	read_i2c(0x02)
 
-def check_key():
-	if char == 'c' or char == 'i':
-        	print "Key pressed is " + char
-        	return char
-	else:
-		return None
+def check_key():  #theoretically complete
+    char = getch()
+    if char == 'c' or char == 'i':
+        #print "Key pressed is " + char
+        return char
+    else:
+        return None
 
 def check_button_presses():
-	pass
+	print "button check func working"
+	read_i2c(0x03)
 
 def check_temp():
-	pass
+	print "temp check func working"
+	temp = read_i2c(0x04)
+	return temp
 
-def temp_monitor_LED(temperature):
-	if temperature < 50:				#this is just some value, we'll work out the proper values when we try the thermistor thing out
+def temp_monitor_LED(temperature): #almost complete, just need to add real values
+	if temperature < 50:
 		GPIO.output(5,True)	#led0
 		GPIO.output(6, False)	#led1
 		GPIO.output(12, False)	#led2
@@ -68,6 +120,7 @@ def temp_monitor_LED(temperature):
 		GPIO.output(19, False)	#led5
 		GPIO.output(20, False) 	#led6
 		GPIO.output(26, False)	#led7
+
 	elif temperature >50 and temperature < 100:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
@@ -77,26 +130,7 @@ def temp_monitor_LED(temperature):
 		GPIO.output(19, False)
 		GPIO.output(20, False)
 		GPIO.output(26, False)
-	elif temperature >100 and temperature < 150:
-		GPIO.output(5, def temp_monitor_LED(temperature):
-	if temperature < 50:				#this is just some value, we'll work out the proper values when we try the thermistor thing out
-		GPIO.output(5,True)	#led0
-		GPIO.output(6, False)	#led1
-		GPIO.output(12, False)	#led2
-		GPIO.output(13, False)	#led3
-		GPIO.output(16, False)	#led4
-		GPIO.output(19, False)	#led5
-		GPIO.output(20, False) 	#led6
-		GPIO.output(26, False)	#led7
-	elif temperature >50 and temperature < 100:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, False)
-		GPIO.output(13, False)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
+
 	elif temperature >100 and temperature < 150:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
@@ -106,6 +140,7 @@ def temp_monitor_LED(temperature):
 		GPIO.output(19, False)
 		GPIO.output(20, False)
 		GPIO.output(26, False)
+
 	elif temperature >150 and temperature < 200:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
@@ -115,6 +150,7 @@ def temp_monitor_LED(temperature):
 		GPIO.output(19, False)
 		GPIO.output(20, False)
 		GPIO.output(26, False)
+
 	elif temperature >200 and temperature < 250:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
@@ -125,90 +161,6 @@ def temp_monitor_LED(temperature):
 		GPIO.output(20, False)
 		GPIO.output(26, False)
 	
-
-	elif temperature >250 and temperature < 300:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, True)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-
-	elif temperature >300 and temperature < 350:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, True)
-		GPIO.output(20, True)
-		GPIO.output(26, False)
-
-	elif temperature >350 and temperature < 400:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, True)
-		GPIO.output(20, True)
-		GPIO.output(26, True)
-
-	else:
-		GPIO.output(5, False)
-		GPIO.output(6, False)
-		GPIO.output(12, False)
-		GPIO.output(13, False)
-		GPIO.output(1def temp_monitor_LED(temperature):
-	if temperature < 50:				#this is just some value, we'll work out the proper values when we try the thermistor thing out
-		GPIO.output(5,True)	#led0
-		GPIO.output(6, False)	#led1
-		GPIO.output(12, False)	#led2
-		GPIO.output(13, False)	#led3
-		GPIO.output(16, False)	#led4
-		GPIO.output(19, False)	#led5
-		GPIO.output(20, False) 	#led6
-		GPIO.output(26, False)	#led7
-	elif temperature >50 and temperature < 100:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, False)
-		GPIO.output(13, False)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-	elif temperature >100 and temperature < 150:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, False)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-	elif temperature >150 and temperature < 200:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-	elif temperature >200 and temperature < 250:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-	
-
 	elif temperature >250 and temperature < 300:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
@@ -248,93 +200,20 @@ def temp_monitor_LED(temperature):
 		GPIO.output(19, False)
 		GPIO.output(20, False)
 		GPIO.output(26, False)
-
-		#etc etc
-	return6, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-
-		#etc etc
-	returnTrue)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, False)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-	elif temperature >150 and temperature < 200:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-	elif temperature >200 and temperature < 250:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
 	
-
-	elif temperature >250 and temperature < 300:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, True)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-
-	elif temperature >300 and temperature < 350:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, True)
-		GPIO.output(20, True)
-		GPIO.output(26, False)
-
-	elif temperature >350 and temperature < 400:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, True)
-		GPIO.output(20, True)
-		GPIO.output(26, True)
-
-	else:
-		GPIO.output(5, False)
-		GPIO.output(6, False)
-		GPIO.output(12, False)
-		GPIO.output(13, False)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-
-		#etc etc
 	return
 
 def check_heart_rate():
-	pass
+	print "heart check func working"
+	read_i2c(0x00)
 
 def check_respiration():
-	pass
+	print "resp check func working"
+	read_i2c(0x01)
 
 def check_skin_conductance():
-	pass
+	print "skin check func working"
+	read_i2c(0x02)
 
 ## Main Loop
 
