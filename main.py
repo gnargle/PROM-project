@@ -20,8 +20,9 @@ Added some quick checking print statements to make sure the loop and key-based e
 
 ## Imports
 import thread
+import smbus
 import time
-import RPI.GPIO as GPIO
+import RPi.GPIO as GPIO
  
  
 try:
@@ -52,6 +53,11 @@ GPIO.setup(19, GPIO.OUT)
 GPIO.setup(20, GPIO.OUT)
 GPIO.setup(26, GPIO.OUT)
 
+## Set up I2C
+
+bus = smbus.SMBus(1)
+I2C_ADDR = 0x21
+
 ##function definitions
 
 def read_i2c(hex_address):
@@ -71,7 +77,7 @@ def calibration_mode():
 		    return
 		calibrate_respiratory()
 		calibrate_skin_conduct()
-		time.sleep(1)
+		time.sleep(0.5)
 
 def interview_mode():
 	while True:
@@ -84,6 +90,7 @@ def interview_mode():
 		check_heart_rate()
 		check_respiration()
 		check_skin_conductance()
+		time.sleep(1)
 
 def calibrate_respiratory():
 	print "resp calibration func working"
@@ -102,16 +109,18 @@ def check_key():  #theoretically complete
         return None
 
 def check_button_presses():
-	print "button check func working"
-	read_i2c(0x03)
+	#print "button check func working"
+	#read_i2c(0x03)
+	pass
 
 def check_temp():
-	print "temp check func working"
-	temp = read_i2c(0x04)
+	#print "temp check func working"
+	temp = read_i2c(0x20)
+	#print temp
 	return temp
 
 def temp_monitor_LED(temperature): #almost complete, just need to add real values
-	if temperature < 50:
+	if temperature < 25:
 		GPIO.output(5,True)	#led0
 		GPIO.output(6, False)	#led1
 		GPIO.output(12, False)	#led2
@@ -121,7 +130,7 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 		GPIO.output(20, False) 	#led6
 		GPIO.output(26, False)	#led7
 
-	elif temperature >50 and temperature < 100:
+	elif temperature >25 and temperature < 50:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
 		GPIO.output(12, False)
@@ -131,7 +140,7 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 		GPIO.output(20, False)
 		GPIO.output(26, False)
 
-	elif temperature >100 and temperature < 150:
+	elif temperature >50 and temperature < 75:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
 		GPIO.output(12, True)
@@ -141,7 +150,7 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 		GPIO.output(20, False)
 		GPIO.output(26, False)
 
-	elif temperature >150 and temperature < 200:
+	elif temperature >75 and temperature < 100:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
 		GPIO.output(12, True)
@@ -151,7 +160,7 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 		GPIO.output(20, False)
 		GPIO.output(26, False)
 
-	elif temperature >200 and temperature < 250:
+	elif temperature >100 and temperature < 125:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
 		GPIO.output(12, True)
@@ -161,7 +170,7 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 		GPIO.output(20, False)
 		GPIO.output(26, False)
 	
-	elif temperature >250 and temperature < 300:
+	elif temperature >125 and temperature < 150:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
 		GPIO.output(12, True)
@@ -171,7 +180,7 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 		GPIO.output(20, False)
 		GPIO.output(26, False)
 
-	elif temperature >300 and temperature < 350:
+	elif temperature >150 and temperature < 175:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
 		GPIO.output(12, True)
@@ -181,7 +190,7 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 		GPIO.output(20, True)
 		GPIO.output(26, False)
 
-	elif temperature >350 and temperature < 400:
+	elif temperature >175:
 		GPIO.output(5, True)
 		GPIO.output(6, True)
 		GPIO.output(12, True)
@@ -205,18 +214,18 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 
 def check_heart_rate():
 	print "heart check func working"
-	read_i2c(0x00)
+	#read_i2c(0x00)
 
 def check_respiration():
-	print "resp check func working"
-	read_i2c(0x01)
+	resp = read_i2c(0x10)
+	print resp
 
 def check_skin_conductance():
 	print "skin check func working"
-	read_i2c(0x02)
+	#read_i2c(0x02)
 
 ## Main Loop
 
 while True:
-	calibration_mode()
+	#calibration_mode()
 	interview_mode()
