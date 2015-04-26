@@ -49,14 +49,13 @@ def respitor_rate():### calibration:
 def check_temp(filter):## need to link a signal type option
 	#print "temp check func working"
 	
-	
+	unsorted = read_i2c(0x20)
 	temp = []
-	while len(temp) < 7:
-		temp.append((read_i2c(0x20))
-		
 	if filter == 'i':
-		return temp
+		return unsorted
 	else:
+		while len(temp) < 7:### test of returning mean value of an array of length 7
+			temp.append((read_i2c(0x20))	
 		return signal_filter(temp)
 	
 	#print temp
