@@ -6,26 +6,30 @@ from matplot
     debug: if refresh rate is too slow catch the old data and just feed that in'''
 ''' skin conductive 1meg resistor, this is just  a quick mockup ill work on it tonight''' 
 
+def timer(n):## i havent decided if i should just make a timer function yet, will see if it is needed.
+	
+	
+	while n > 0:
+		n -= 1
+		sleep.time(0.994)
+	return 
+		
 
 
 
 
-
-def select_signal_type():
+def select_signal_type(): ## need to be able to change the signal at any time.
 	char = getch()
 	if char == 'f':
-		return signal_filter(raw_data)
+		return 'f'
 	elif char == 'i':
-		return input_signals(raw_data)
-
-def input_array():
-	pass
-	### this needs to return an array of length 6, we get values straight from the sst,rr,scr functions
+		return 'i'
+		
+	else pass
 
 
 
-
-def respitor_rate():
+def respitor_rate():### calibration: 
 	resp = read_i2c(0x10)
 	n = 60
 	
@@ -40,12 +44,31 @@ def respitor_rate():
 
 
 
-def signal_filter(input_array): 
+
+			
+def check_temp(filter):## need to link a signal type option
+	#print "temp check func working"
 	
+	
+	temp = []
+	while len(temp) < 7:
+		temp.append((read_i2c(0x20))
+		
+	if filter == 'i':
+		return temp
+	else:
+		return signal_filter(temp)
+	
+	#print temp
+	
+
+
+def signal_filter(input_array):
+		
 	sort = input_array
 	sort.sort()
 	length = len(input_array)
-	
+		
 	if length == 0:
 		pass
 	
@@ -53,11 +76,6 @@ def signal_filter(input_array):
 		return ((sort[length/2] + sort[(length/2) -1]) / 2.0)
 	else:
 		return sort[length/2]
-
-
-
-			
-
 
 
 
