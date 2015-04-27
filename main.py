@@ -1,7 +1,7 @@
 ###########################################################################################
-#					Raspberry Pi Polygraph controller		  #
+#				Raspberry Pi Polygraph controller			  #
 #											  #							#
-#		All code and hardware by Nicholas Allen and Antony Dyer			  #
+#			All code and hardware by Nicholas Allen and Antony Dyer		  #
 #											  #							#
 ###########################################################################################
 
@@ -16,6 +16,8 @@ leading to lines being repeated.
 using that address. It is currently used in all the check and calibrate functions, albeit
 with arbitrary hex values.
 Added some quick checking print statements to make sure the loop and key-based exits are working
+27/04/15, 14:30
+Merged Antony's filter changes for temperature and respiratory rate.
 '''
 
 ## Imports
