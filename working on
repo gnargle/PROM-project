@@ -22,8 +22,8 @@ def select_signal_type(): ## need to be able to change the signal at any time.
 	char = getch()
 	if char == 'f':
 		return 'f'
-	elif char == 'i':
-		return 'i'
+	elif char == 'u':
+		return 'u'
 		
 	else pass
 
@@ -51,7 +51,7 @@ def check_temp(filter):## need to link a signal type option
 	
 	unsorted = read_i2c(0x20)
 	temp = []
-	if filter == 'i':
+	if filter == 'u':
 		return unsorted
 	else:
 		while len(temp) < 7:### test of returning mean value of an array of length 7
