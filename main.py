@@ -1,9 +1,9 @@
-#####################################################################
-#					Raspberry Pi Polygraph controller				#
-#																	#
-#		All code and hardware by Nicholas Allen and Antony Dyer		#
-#																	#
-#####################################################################
+###########################################################################################
+#					Raspberry Pi Polygraph controller		  #
+#											  #							#
+#		All code and hardware by Nicholas Allen and Antony Dyer			  #
+#											  #							#
+###########################################################################################
 
 '''
 ###############################################
@@ -70,6 +70,27 @@ def read_i2c(hex_address):
 	tmp = tmp & 4095 
 	return tmp
 
+def timer(n):## i havent decided if i should just make a timer function yet, will see if it is needed.
+	
+	
+	while n > 0:
+		n -= 1
+		sleep.time(0.994)
+	return 
+
+def signal_filter(input_array):
+		
+	sort = input_array
+	sort.sort()
+	length = len(input_array)
+		
+	if length == 0:
+		return None
+	elif (length % 2)  == 0:
+		return ((sort[length/2] + sort[(length/2) -1]) / 2.0)
+	else:
+		return sort[length/2]
+
 def calibration_mode():
 	while True:
 		key = check_key()
@@ -85,7 +106,7 @@ def interview_mode():
 		if key == "c":
 		    return
 		check_button_presses()
-		temp = check_temp()
+		temp = check_temp(key)
 		temp_monitor_LED(temp)
 		check_heart_rate()
 		check_respiration()
@@ -93,8 +114,20 @@ def interview_mode():
 		time.sleep(1)
 
 def calibrate_respiratory():
-	print "resp calibration func working"
-	read_i2c(0x01)
+	print respitor_rate()
+
+def respitor_rate():### calibration: 
+	resp = read_i2c(0x10)
+	n = 60
+
+
+
+	while n > 0 :   ### just a tests printing replace it entirely with time.sleep(60)
+		print ( n, 'Seconds left') 
+		n = n-1
+		time.sleep(0.9994)
+		
+	return resp ## once timer is done it returns the resp value
 
 def calibrate_skin_conduct():
 	print "skin calibration func working"
@@ -102,7 +135,7 @@ def calibrate_skin_conduct():
 
 def check_key():  #theoretically complete
     char = getch()
-    if char == 'c' or char == 'i':
+    if char == 'c' or char == 'i' or char == 'u' or char == 'f':
         #print "Key pressed is " + char
         return char
     else:
@@ -113,11 +146,19 @@ def check_button_presses():
 	#read_i2c(0x03)
 	pass
 
-def check_temp():
-	#print "temp check func working"
-	temp = read_i2c(0x20)
-	#print temp
-	return temp
+def check_temp(filter_char):
+	unsorted = read_i2c(0x20)
+	temp = []
+	if filter_char == 'u':
+		print unsorted
+		return unsorted
+	else:
+		while len(temp) <11:
+			temp.append(read_i2c(0x20))
+		returned_value = signal_filter(temp)
+		print returned_value
+		return returned_value
+
 
 def temp_monitor_LED(temperature): #almost complete, just need to add real values
 	if temperature < 25:
@@ -154,7 +195,7 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 		GPIO.output(5, True)
 		GPIO.output(6, True)
 		GPIO.output(12, True)
-		GPIO.output(13, True)
+		GPIO.output(13, True)
 		GPIO.output(16, False)
 		GPIO.output(19, False)
 		GPIO.output(20, False)
@@ -219,6 +260,8 @@ def check_heart_rate():
 def check_respiration():
 	resp = read_i2c(0x10)
 	print resp
+
+
 
 def check_skin_conductance():
 	print "skin check func working"
