@@ -15,9 +15,11 @@ leading to lines being repeated.
 *Added the read_i2c() func. This takes a hex address as input and reads the data from I2C
 using that address. It is currently used in all the check and calibrate functions, albeit
 with arbitrary hex values.
-Added some quick checking print statements to make sure the loop and key-based exits are working
+*Added some quick checking print statements to make sure the loop and key-based exits are working
 27/04/15, 14:30
-Merged Antony's filter changes for temperature and respiratory rate.
+*Merged Antony's filter changes for temperature and respiratory rate.
+28/04/15
+*Small update to change the hex values for the inputs we haven't worked on yet to be their correct values
 '''
 
 ## Imports
@@ -133,7 +135,7 @@ def respitor_rate():### calibration:
 
 def calibrate_skin_conduct():
 	print "skin calibration func working"
-	read_i2c(0x02)
+	read_i2c(0x40)
 
 def check_key():  #theoretically complete
     char = getch()
@@ -257,7 +259,7 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 
 def check_heart_rate():
 	print "heart check func working"
-	#read_i2c(0x00)
+	read_i2c(0x80)
 
 def check_respiration():
 	resp = read_i2c(0x10)
@@ -267,7 +269,7 @@ def check_respiration():
 
 def check_skin_conductance():
 	print "skin check func working"
-	#read_i2c(0x02)
+	read_i2c(0x40)
 
 ## Main Loop
 
