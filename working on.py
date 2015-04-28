@@ -80,6 +80,35 @@ def signal_filter(input_array):
 
 
 
+import random
+
+import math
+import time
+
+
+
+### percentage change RR, basic model of RR filter, needs changing when i get my hands on the hardware to test.
+arr = [210,93]
+
+def RRfilter(arr):
+	percentage = 60
+	#temp = read_i2c(0x10)
+	percentage_change = float(arr[1] - arr[0]) / abs(arr[0]) * 100
+	
+	
+	
+	#lst.append(arr)
+	
+	if abs(percentage_change) > percentage:
+		return None
+	else:
+		return arr[0], arr[1]
+	
+	
+
+while True:
+	print RRfilter(arr)
+	time.sleep(2)
 
 
 
