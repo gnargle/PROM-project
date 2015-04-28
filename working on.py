@@ -88,6 +88,7 @@ import time
 
 
 ### percentage change RR, basic model of RR filter, needs changing when i get my hands on the hardware to test.
+##I think deeper breaths will cause a greater change, im not sure if we should record this or just the rate of breather per min.
 arr = [210,93]
 
 def RRfilter(arr):
