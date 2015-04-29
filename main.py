@@ -62,6 +62,11 @@ GPIO.setup(26, GPIO.OUT)
 bus = smbus.SMBus(1)
 I2C_ADDR = 0x21
 
+## global vars
+
+global counter
+counter = 0
+
 ##function definitions
 
 def read_i2c(hex_address):
@@ -97,41 +102,45 @@ def signal_filter(input_array):
 
 def calibration_mode():
 	while True:
-		key = check_key()
-		if key == "i":
-		    return
+		#key = check_key()
+		#if key == "i":
+		#    return
 		calibrate_respiratory()
-		calibrate_skin_conduct()
+		#calibrate_skin_conduct()
 		time.sleep(0.5)
 
 def interview_mode():
 	while True:
-		key = check_key()
-		if key == "c":
-		    return
-		check_button_presses()
-		temp = check_temp(key)
-		temp_monitor_LED(temp)
-		check_heart_rate()
+		#key = check_key()
+		#if key == "c":
+		#    return
+		#check_button_presses()
+		#temp = check_temp(key)
+		#temp_monitor_LED(temp)
+		#check_heart_rate()
 		check_respiration()
-		check_skin_conductance()
+		#check_skin_conductance()
 		time.sleep(1)
 
 def calibrate_respiratory():
-	print respitor_rate()
+	print read_i2c(0x10)
+	#print RRfilter()
 
-def respitor_rate():### calibration: 
-	resp = read_i2c(0x10)
-	n = 60
-
-
-
-	while n > 0 :   ### just a tests printing replace it entirely with time.sleep(60)
-		print ( n, 'Seconds left') 
-		n = n-1
-		time.sleep(0.9994)
-		
-	return resp ## once timer is done it returns the resp value
+def RRfilter():
+	global counter
+	percentage = 90
+	## change to lst[1],lst[0]
+	lst = []
+	while len(lst) < 2:
+		temp = read_i2c(0x10)
+		lst.append(temp)
+	percentage_change = float(lst[1] - lst[0]) / abs(lst[0]) * 100
+	
+	if abs(percentage_change) > percentage:
+		return None
+	else:
+		counter += 1
+		return counter
 
 def calibrate_skin_conduct():
 	print "skin calibration func working"
@@ -199,7 +208,7 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 		GPIO.output(5, True)
 		GPIO.output(6, True)
 		GPIO.output(12, True)
-		GPIO.output(13, True)
+		GPIO.output(13, True)
 		GPIO.output(16, False)
 		GPIO.output(19, False)
 		GPIO.output(20, False)
@@ -262,8 +271,7 @@ def check_heart_rate():
 	read_i2c(0x80)
 
 def check_respiration():
-	resp = read_i2c(0x10)
-	print resp
+	print RRfilter()
 
 
 
@@ -274,5 +282,5 @@ def check_skin_conductance():
 ## Main Loop
 
 while True:
-	#calibration_mode()
+	calibration_mode()
 	interview_mode()
