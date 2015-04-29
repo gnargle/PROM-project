@@ -92,20 +92,32 @@ import time
 ##I don't think we need to actually plot these values, just too to count it as 1 breath, and run it through a,
 ## time program at calculate the expected breath's per minute(which will be displayed on GUI).
 arr = [210,93]
+counter = 0
+
+arr = [210,93]
 
 def RRfilter(arr):
+	global counter
 	percentage = 60
 	#temp = read_i2c(0x10)
-	percentage_change = float(arr[1] - arr[0]) / abs(arr[0]) * 100
-	
-	
+	percentage_change = float(arr[1] - arr[0]) / abs(arr[0]) * 100## change to lst[1],lst[0]
 	#lst = []
-	#lst.append(arr)
+	#while len(lst) < 1:
+		#lst.append(temp)
+	
+	lst.append(arr)
 	
 	if abs(percentage_change) > percentage:
 		return None
 	else:
-		return arr[0], arr[1]
+		counter += 1
+		return counter
+	
+	
+
+while True:
+	print RRfilter(arr)
+	time.sleep(2)
 	
 	
 
