@@ -57,6 +57,10 @@ GPIO.setup(19, GPIO.OUT)
 GPIO.setup(20, GPIO.OUT)
 GPIO.setup(26, GPIO.OUT)
 
+## The below pins are for the push buttons. 7 corresponds to CE1, 8 is CE0.
+GPIO.setup(7, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(8, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
 ## Set up I2C
 
 bus = smbus.SMBus(1)
@@ -155,9 +159,11 @@ def check_key():  #theoretically complete
         return None
 
 def check_button_presses():
-	#print "button check func working"
-	#read_i2c(0x03)
-	pass
+	if (GPIO.input(7)==1):
+		print "question asked"
+	if (GPIO.input(8)==1):
+		print "question answered"
+	return
 
 def check_temp(filter_char):
 	unsorted = read_i2c(0x20)
@@ -267,20 +273,18 @@ def temp_monitor_LED(temperature): #almost complete, just need to add real value
 	return
 
 def check_heart_rate():
-	print "heart check func working"
-	read_i2c(0x80)
+	#print "heart check func working"
+	print "heart rate output", read_i2c(0x80)
 
 def check_respiration():
-	print RRfilter()
-
-
+	print "respiratory output", RRfilter()
 
 def check_skin_conductance():
 	print "skin check func working"
-	read_i2c(0x40)
+	print read_i2c(0x40)
 
 ## Main Loop
 
 while True:
-	calibration_mode()
+	#calibration_mode()
 	interview_mode()
