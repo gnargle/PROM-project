@@ -58,8 +58,8 @@ GPIO.setup(20, GPIO.OUT)
 GPIO.setup(26, GPIO.OUT)
 
 ## The below pins are for the push buttons. 7 corresponds to CE1, 8 is CE0.
-GPIO.setup(7, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(8, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 ## Set up I2C
 
@@ -106,28 +106,38 @@ def signal_filter(input_array):
 
 def calibration_mode():
 	while True:
-		#key = check_key()
-		#if key == "i":
-		#    return
-		calibrate_respiratory()
-		#calibrate_skin_conduct()
-		time.sleep(0.5)
+		#resp = calibrate_respiratory()
+		resp = True
+		skin = calibrate_skin_conduct('f')
+		time.sleep(1)
+		if resp == True and skin == True:
+			break
+	print "Both settings have been successfully calibrated"
+	print "Please press i to enter interview mode"
+	while True:
+		key = check_key()
+		if key == "i":
+	    		return
 
 def interview_mode():
 	while True:
+		output = []
 		#key = check_key()
 		#if key == "c":
 		#    return
 		#check_button_presses()
 		#temp = check_temp(key)
+		#output.append(temp)
 		#temp_monitor_LED(temp)
-		#check_heart_rate()
-		check_respiration()
-		#check_skin_conductance()
+		output.append(check_heart_rate())
+		#output.append(check_respiration())
+		#output.append(check_skin_conductance())
+
+
 		time.sleep(1)
 
 def calibrate_respiratory():
-	print read_i2c(0x10)
+	print "resp calibrate", read_i2c(0x10)
 	#print RRfilter()
 
 def RRfilter():
@@ -146,9 +156,27 @@ def RRfilter():
 		counter += 1
 		return counter
 
-def calibrate_skin_conduct():
-	print "skin calibration func working"
-	read_i2c(0x40)
+def calibrate_skin_conduct(filter_char):
+	unsorted = read_i2c(0x40)
+	temp = []
+	if filter_char == 'u':
+		print unsorted
+		return unsorted
+	else:
+		while len(temp) <11:
+			temp.append(read_i2c(0x40))
+		returned_value = signal_filter(temp)
+		print "skin calibrate", returned_value
+		if returned_value > 60 and returned_value < 80:
+			print "The skin conductance has been calibrated"
+			time.sleep(1)
+			return True
+		elif returned_value < 60:
+			print "Increase the variable resistor"
+			time.sleep(1)
+		else:
+			print "Decrease the variable resistor"
+			time.sleep(1)
 
 def check_key():  #theoretically complete
     char = getch()
@@ -159,9 +187,11 @@ def check_key():  #theoretically complete
         return None
 
 def check_button_presses():
-	if (GPIO.input(7)==1):
+	print GPIO.input(17)
+	print GPIO.input(4)
+	if (GPIO.input(17)==0):
 		print "question asked"
-	if (GPIO.input(8)==1):
+	if (GPIO.input(4)==0):
 		print "question answered"
 	return
 
@@ -179,7 +209,7 @@ def check_temp(filter_char):
 		return returned_value
 
 
-def temp_monitor_LED(temperature): #almost complete, just need to add real values
+def temp_monitor_LED(temperature):
 	if temperature < 25:
 		GPIO.output(5,True)	#led0
 		GPIO.output(6, False)	#led1
