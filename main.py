@@ -27,6 +27,7 @@ import thread
 import smbus
 import time
 import RPi.GPIO as GPIO
+import datetime
  
  
 try:
@@ -68,8 +69,12 @@ I2C_ADDR = 0x21
 
 ## global vars
 
-global counter
+global resp_counter
 counter = 0
+global heart_counter
+heart_counter = 0
+global output
+output = []
 
 ##function definitions
 
@@ -106,7 +111,7 @@ def signal_filter(input_array):
 
 def calibration_mode():
 	while True:
-		#resp = calibrate_respiratory()
+		resp = calibrate_respiratory()
 		resp = True
 		skin = calibrate_skin_conduct('f')
 		time.sleep(1)
@@ -119,29 +124,49 @@ def calibration_mode():
 		if key == "i":
 	    		return
 
-def interview_mode():
+def interview_mode(): ## this should be pretty much finished. Added ways to calculate HR and RR. 
+					  # All funcs that should now return a value do, also
+	start = time.time()
 	while True:
-		output = []
-		#key = check_key()
-		#if key == "c":
-		#    return
-		#check_button_presses()
-		#temp = check_temp(key)
-		#output.append(temp)
-		#temp_monitor_LED(temp)
-		output.append(check_heart_rate())
-		#output.append(check_respiration())
+		key = check_key()
+		if key == "c":
+		    return
+		temp = check_temp(key)
+		output.append(temp)
+		temp_monitor_LED(temp)
+		check_heart_rate()
+		end_heart = time.time()
+		elapsed = start-end_heart
+		heart_rate = heart_counter/elapsed
+		check_respiration()
+		end_resp = time.time()
+		elapsed = start-end_resp
+		resp_rate = resp_counter/elapsed
+		output.append(resp_rate)
 		#output.append(check_skin_conductance())
-
-
+		output.append(check_button_presses())
+		f = open('results.csv', 'w')
+		for val in output:
+			f.write(str(val) + ',')
+		f.write('\n')
+		f.close()
 		time.sleep(1)
 
 def calibrate_respiratory():
-	print "resp calibrate", read_i2c(0x10)
-	#print RRfilter()
+	returned_value = read_i2c(0x10)
+	if returned_value > 60 and returned_value < 80:
+			print "The respiratory voltage has been calibrated"
+			time.sleep(1)
+			return True
+		elif returned_value < 60:
+			print "Increase the variable resistor"
+			time.sleep(1)
+		else:
+			print "Decrease the variable resistor"
+			time.sleep(1)
 
 def RRfilter():
-	global counter
+	global resp_counter
 	percentage = 90
 	## change to lst[1],lst[0]
 	lst = []
@@ -153,8 +178,8 @@ def RRfilter():
 	if abs(percentage_change) > percentage:
 		return None
 	else:
-		counter += 1
-		return counter
+		resp_counter += 1
+		return resp_counter
 
 def calibrate_skin_conduct(filter_char):
 	unsorted = read_i2c(0x40)
@@ -168,7 +193,7 @@ def calibrate_skin_conduct(filter_char):
 		returned_value = signal_filter(temp)
 		print "skin calibrate", returned_value
 		if returned_value > 60 and returned_value < 80:
-			print "The skin conductance has been calibrated"
+			print "The skin voltage has been calibrated"
 			time.sleep(1)
 			return True
 		elif returned_value < 60:
@@ -187,12 +212,11 @@ def check_key():  #theoretically complete
         return None
 
 def check_button_presses():
-	print GPIO.input(17)
-	print GPIO.input(4)
+	global output
 	if (GPIO.input(17)==0):
-		print "question asked"
+		return("question asked at ", datetime.datetime.now().time())
 	if (GPIO.input(4)==0):
-		print "question answered"
+		return("question answered at ", datetime.datetime.now().time())
 	return
 
 def check_temp(filter_char):
@@ -302,9 +326,24 @@ def temp_monitor_LED(temperature):
 	
 	return
 
-def check_heart_rate():
-	#print "heart check func working"
-	print "heart rate output", read_i2c(0x80)
+def check_heart_rate(): # we need something similar to the RR filter here I think
+	return HRFilter()
+
+def HRFilter():
+	global heart_counter
+	percentage = 90 #need to adjust this value for hr
+	## change to lst[1],lst[0]
+	lst = []
+	while len(lst) < 2:
+		temp = read_i2c(0x80)
+		lst.append(temp)
+	percentage_change = float(lst[1] - lst[0]) / abs(lst[0]) * 100
+	
+	if abs(percentage_change) > percentage:
+		return None
+	else:
+		heart_counter += 1
+		return heart_counter
 
 def check_respiration():
 	print "respiratory output", RRfilter()
