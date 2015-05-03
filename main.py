@@ -28,6 +28,10 @@ import smbus
 import time
 import RPi.GPIO as GPIO
 import datetime
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import interpolate
+from TKinter import *
  
  
 try:
@@ -76,6 +80,35 @@ heart_counter = 0
 global output
 output = []
 
+hr_array = []
+reading = 0
+'''
+## Class definition for GUI
+
+class Application(Frame):
+    def say_hi(self):
+        print "hi there, everyone!"
+
+    def createWidgets(self):
+        self.interview = Button(self)
+        self.interview["text"] = "Interview Mode"
+        self.interview["fg"]   = "red"
+        self.interview["command"] = interview_mode()
+
+        self.interview.pack({"side": "right"})
+
+        self.calibrate = Button(self)
+        self.calibrate["text"] = "Calibration mode"
+        self.calibrate["command"] = calibration_mode()
+
+        self.calibrate.pack({"side": "right"})
+
+    def __init__(self, master=None):
+        Frame.__init__(self, master)
+        self.pack()
+        self.createWidgets()
+
+'''
 ##function definitions
 
 def read_i2c(hex_address):
@@ -124,6 +157,20 @@ def calibration_mode():
 		if key == "i":
 	    		return
 
+def cubic_spline_hr(xtime, yresults):
+	x = np.arange(xtime)
+	y = np.arange(yresults)
+	tck = interpolate.splrep(x, y, s=0)
+	xnew = np.arange(xtime)
+	ynew = interpolate.splev(xnew, tck, der=0)
+
+	plt.figure()
+	plt.plot(x,y,'x',xnew,ynew,xnew,np.sin(xnew),x,y,'b')
+	plt.legend(['Linear', 'Cubic Spline', 'True'])
+	plt.axis([-0.05, 6.33, -1.05, 1.05])
+	plt.title('Heart Rate Cubic Spline interpolation')
+	plt.show()
+
 def interview_mode(): ## this should be pretty much finished. Added ways to calculate HR and RR. 
 					  # All funcs that should now return a value do, also
 	start = time.time()
@@ -138,6 +185,9 @@ def interview_mode(): ## this should be pretty much finished. Added ways to calc
 		end_heart = time.time()
 		elapsed = start-end_heart
 		heart_rate = heart_counter/elapsed
+		hr_array.append(heart_rate)
+		reading += 1
+		cubic_spline_hr(reading, hr_array)
 		check_respiration()
 		end_resp = time.time()
 		elapsed = start-end_resp
@@ -158,12 +208,12 @@ def calibrate_respiratory():
 			print "The respiratory voltage has been calibrated"
 			time.sleep(1)
 			return True
-		elif returned_value < 60:
-			print "Increase the variable resistor"
-			time.sleep(1)
-		else:
-			print "Decrease the variable resistor"
-			time.sleep(1)
+	elif returned_value < 60:
+		print "Increase the variable resistor"
+		time.sleep(1)
+	else:
+		print "Decrease the variable resistor"
+		time.sleep(1)
 
 def RRfilter():
 	global resp_counter
@@ -212,12 +262,28 @@ def check_key():  #theoretically complete
         return None
 
 def check_button_presses():
-	global output
-	if (GPIO.input(17)==0):
-		return("question asked at ", datetime.datetime.now().time())
-	if (GPIO.input(4)==0):
-		return("question answered at ", datetime.datetime.now().time())
-	return
+	#global output
+	asked = switch_debounce(17)
+	if asked != None:
+		return asked
+	answered = switch_debounce(4)
+	if answered != None:
+		return answered
+	else:
+		return
+
+def switch_debounce(port):
+	while True:
+  		#take a reading
+  		prev_input = GPIO.input(port)
+  		time.sleep(0.05)
+  		input = GPIO.input(port)
+  		#if the last reading was low and this one high, print
+  		if (prev_input and (not input)):
+  			if port == 17:
+  				return("question asked at ", datetime.datetime.now().time())
+  			elif port == 4:
+  				return("question answered at ", datetime.datetime.now().time())
 
 def check_temp(filter_char):
 	unsorted = read_i2c(0x20)
@@ -353,6 +419,12 @@ def check_skin_conductance():
 	print read_i2c(0x40)
 
 ## Main Loop
+'''
+root = Tk()
+app = Application(master=root)
+app.mainloop()
+root.destroy()
+'''
 
 while True:
 	#calibration_mode()
