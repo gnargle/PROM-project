@@ -43,18 +43,6 @@ line, = plt.plot(ydata)
 temp = time.time()
 
 
-def graph(char)
-    while char == 'm':
-        y = ran.randint(1,10)
-
-
-        X_axis = int(int(time.time())-int(temp))## time base
-        Y_axis = y ### updates random values
-        ydata.append(Y_axis)
-        line.set_xdata(np.arange(len(ydata)))
-        line.set_ydata(y)
-        plt.draw()
-        time.sleep(0.1)
 
 
 
