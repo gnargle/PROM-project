@@ -1,20 +1,60 @@
 import time
 from matplot
 
-
-'''  random notes: 
-    debug: if refresh rate is too slow catch the old data and just feed that in'''
 ''' skin conductive 1meg resistor, this is just  a quick mockup ill work on it tonight''' 
 
-def timer(n):## i havent decided if i should just make a timer function yet, will see if it is needed.
-	
-	
-	while n > 0:
-		n -= 1
-		sleep.time(0.994)
-	return 
-		
 
+'''We can just use the check_key function to turn it on/off, ill test that tomorrow''' 
+import time
+import matplotlib.pyplot as plt
+import numpy as np
+import random as ran
+
+try:
+    from msvcrt import getch  # try to import Windows version
+except ImportError:
+    def getch():   # define non-Windows version
+        import sys, tty, termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+def check_key(): 
+    char = getch()
+    if char == 'c' or char == 'i' or char == 'u' or char == 'f' or char == 'm':
+        #print "Key pressed is " + char
+        return char
+    else:
+        return None
+
+
+
+plt.axis([0, 100, -10, 210])## sets axis, if its bigger than y it wont show it on screen, it will go on untill it was reached the max value on the x axis.
+plt.ion()
+plt.show()
+ydata = [0]## holds the rand data.
+line, = plt.plot(ydata)
+
+temp = time.time()
+
+
+def graph(char)
+    while char == 'm':
+        y = ran.randint(1,10)
+
+
+        X_axis = int(int(time.time())-int(temp))## time base
+        Y_axis = y ### updates random values
+        ydata.append(Y_axis)
+        line.set_xdata(np.arange(len(ydata)))
+        line.set_ydata(y)
+        plt.draw()
+        time.sleep(0.1)
 
 
 
