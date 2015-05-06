@@ -1,0 +1,72 @@
+import matplotlib.pyplot as plt
+import time
+import random
+from collections import deque
+import numpy as np
+from matplotlib.widgets import Slider, Button, RadioButtons
+import matplotlib.animation as animation
+
+############## gives us random values
+def data():
+    while True:
+        if not paused:
+            val = random.randint(1,180)
+            yield val
+            time.sleep(0.1)
+            plt.pause(0.1)
+        else:
+            plt.pause(0.1)
+            pass
+##############
+
+a1 = deque([0]*50)
+ax = plt.axes(xlim=(0, 50), ylim=(0, 200))
+data = data()
+
+line, = plt.plot(a1)
+plt.ion()
+plt.xlabel('x')
+plt.title('title')
+plt.ylabel('y')
+          
+plt.ylim([0,200])
+plt.show()
+
+
+
+paused = False
+######## pause
+
+axcolor = 'red'
+resetax = plt.axes([0.83, 0.025, 0.15, 0.036])
+button = Button(resetax, 'Pause/Start', color=axcolor, hovercolor='0.975')
+def Kill(event):
+    global paused
+    paused ^= True
+    
+    
+button.on_clicked(Kill)
+
+
+
+########
+
+
+
+
+
+
+########deque to stop it going out of range of the x axis
+
+
+for i in range(0,1000): ## it will get 10 values and stop
+    a1.appendleft(next(data))
+    print a1
+    datatoplot = a1.pop()
+    line.set_ydata(a1)
+    plt.draw()
+    time.sleep(0.1)
+    plt.pause(0.01) 
+    print paused
+
+
