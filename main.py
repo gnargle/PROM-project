@@ -82,26 +82,9 @@ output = []
 
 hr_array = []
 reading = 0
-'''
-## Class definition for GUI
-class Application(Frame):
-    def say_hi(self):
-        print "hi there, everyone!"
-    def createWidgets(self):
-        self.interview = Button(self)
-        self.interview["text"] = "Interview Mode"
-        self.interview["fg"]   = "red"
-        self.interview["command"] = interview_mode()
-        self.interview.pack({"side": "right"})
-        self.calibrate = Button(self)
-        self.calibrate["text"] = "Calibration mode"
-        self.calibrate["command"] = calibration_mode()
-        self.calibrate.pack({"side": "right"})
-    def __init__(self, master=None):
-        Frame.__init__(self, master)
-        self.pack()
-        self.createWidgets()
-'''
+
+## Initialise file
+f = open('results.csv', 'w')
 ##function definitions
 
 def read_i2c(hex_address):
@@ -132,7 +115,7 @@ def read_i2c(hex_address):
 		tmp = int(reorderedtmp, 16)
 		tmp = tmp & 4095 
 	
-	return tmp
+		return tmp
 	elif len(hex(tmp)) == 4:
 		try:
 			tmpHIGH = hex(tmp)[3]
@@ -347,35 +330,36 @@ def interview_mode(): ## this should be pretty much finished. Added ways to calc
 	start = time.time()
 	while True:
 		key = 'f'
-		#temp = check_temp(key)
-		#output.append(temp)
-		#print "temp done"
+		output.append(datetime.datetime.now().time())
+		temp = check_temp(key)
+		output.append(temp)
+		print "temp done"
 		check_heart_rate()
 		end_heart = time.time()
 		elapsed = start-end_heart
-		heart_rate = heart_counter/elapsed
-		hr_array.append(heart_rate)
+		heart_rate = abs(float(heart_counter/elapsed) * 60)
+		#hr_array.append(heart_rate)
 		output.append(heart_rate)
-		print "hr done"
-		#reading += 1
+		print "heart done"
+		reading += 1
 		#cubic_spline_hr(reading, hr_array)
-		#check_respiration()
-		#end_resp = time.time()
-		#elapsed = start-end_resp
-		#resp_rate = resp_counter/elapsed
-		#output.append(resp_rate)
-		#print "resp done"
-		#output.append(check_skin_conductance())
-		#print "skin done"
-		#output.append(check_button_presses())
-		#print "buttons done"
-		#f = open('results.csv', 'w')
-		#fileWriter = csv.writer(f)
-		#fileWriter.writerow(output)
-		#f.close()
-		#print "file writing done"
+		check_respiration()
+		end_resp = time.time()
+		elapsed = start-end_resp
+		resp_rate = abs(float(resp_counter/elapsed) * 60)
+		output.append(resp_rate)
+		print "resp done"
+		output.append(check_skin_conductance())
+		print "skin done"
+		output.append(check_button_presses())
+		print "buttons done"
+		f = open('results.csv', 'a')
+		fileWriter = csv.writer(f)
+		fileWriter.writerow(output)
+		f.close()
+		print "file writing done"
 		output = []
-		time.sleep(1)
+		time.sleep(0.5)
 
 def check_key():  #theoretically complete
     char = getch()
@@ -386,30 +370,34 @@ def check_key():  #theoretically complete
         return None
 
 def check_button_presses():
+	button1 = 0
+	button2 = 0
 	#global output
 	asked = switch_debounce(17)
 	if asked != None:
-		return asked
+		button1 = 1
 	answered = switch_debounce(4)
 	if answered != None:
-		return answered
-	else:
-		return
+		button2 = 1
+	return button1, button2
 
 def switch_debounce(port):
-	while True:
+	count = 0
+	prev_input = 0
+	while count >= 3:
   		#take a reading
-  		prev_input = GPIO.input(port)
+		buttoninput = GPIO.input(port)
   		time.sleep(0.05)
-  		input = GPIO.input(port)
   		#if the last reading was low and this one high, print
-  		if (prev_input and (not input)):
+  		if (prev_input and (not buttoninput)):
   			if port == 17:
   				return("question asked at ", datetime.datetime.now().time())
   			elif port == 4:
   				return("question answered at ", datetime.datetime.now().time())
   		else:
-  			return None
+  			count += 1
+			prev_input = buttoninput
+	return None
 
 def check_temp(filter_char):
 	unsorted = read_i2c(0x20)
@@ -421,7 +409,6 @@ def check_temp(filter_char):
 		while len(temp) <11:
 			temp.append(read_i2c(0x20))
 		returned_value = signal_filter(temp)
-		print returned_value
 		return returned_value
 
 def check_heart_rate(): # we need something similar to the RR filter here I think
@@ -432,17 +419,17 @@ def HRFilter():
 	percentage = 90 #need to adjust this value for hr
 	## change to lst[1],lst[0]
 	lst = []
-	while len(lst) < 2:
+	while len(lst) < 8:
 		temp = read_i2c(0x80)
-		print temp
+		time.sleep(0.1)
 		lst.append(temp)
-	percentage_change = float(lst[1] - lst[0]) / abs(lst[0]) * 100
-	
-	if abs(percentage_change) > percentage:
-		return None
-	else:
-		heart_counter += 1
-		return heart_counter
+	for i in xrange(len(lst)):
+		if i+1 == len(lst):
+			return
+		elif lst[i] < 300 and lst[i+1] > 3500:
+			heart_counter += 1
+		else: 
+			continue
 
 def check_respiration(): #FUCKING DONE
 	RRfilter()
@@ -468,13 +455,7 @@ def check_skin_conductance():
 	return read_i2c(0x40)
 
 ## Main Loop
-'''
-root = Tk()
-app = Application(master=root)
-app.mainloop()
-root.destroy()
-'''
 
 while True:
-	#calibration_mode()
+	calibration_mode()
 	interview_mode()
