@@ -31,7 +31,7 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
-from TKinter import *
+import csv
  
  
 try:
@@ -74,7 +74,7 @@ I2C_ADDR = 0x21
 ## global vars
 
 global resp_counter
-counter = 0
+resp_counter = 0
 global heart_counter
 heart_counter = 0
 global output
@@ -84,50 +84,77 @@ hr_array = []
 reading = 0
 '''
 ## Class definition for GUI
-
 class Application(Frame):
     def say_hi(self):
         print "hi there, everyone!"
-
     def createWidgets(self):
         self.interview = Button(self)
         self.interview["text"] = "Interview Mode"
         self.interview["fg"]   = "red"
         self.interview["command"] = interview_mode()
-
         self.interview.pack({"side": "right"})
-
         self.calibrate = Button(self)
         self.calibrate["text"] = "Calibration mode"
         self.calibrate["command"] = calibration_mode()
-
         self.calibrate.pack({"side": "right"})
-
     def __init__(self, master=None):
         Frame.__init__(self, master)
         self.pack()
         self.createWidgets()
-
 '''
 ##function definitions
 
 def read_i2c(hex_address):
 	bus.write_byte( I2C_ADDR, 0x20 )	
 	tmp = bus.read_word_data( I2C_ADDR, hex_address )
-	tmpLOW = hex(tmp)[2]
-	tmpHIGH = hex(tmp)[3]
-	reorderedtmp = tmpHIGH + tmpLOW
-	tmp = int(reorderedtmp, 16)
-	tmp = tmp & 4095 
+	if len(hex(tmp)) == 6:
+		try:
+			tmpMID1 = hex(tmp)[2]
+			tmpLOW = hex(tmp)[3]
+			tmpcrap = hex(tmp)[4]
+			tmpHIGH = hex(tmp)[5]
+		except IndexError: 
+			print hex(tmp)
+			return read_i2c(hex_address)
+		reorderedtmp = "0x" +tmpcrap +tmpHIGH +tmpMID1 +tmpLOW
+		tmp = int(reorderedtmp, 16)
+		tmp = tmp & 4095 
+		return tmp
+	elif len(hex(tmp)) == 5:
+		try:
+			tmpHIGH = hex(tmp)[4]
+			tmpLOW = hex(tmp)[2]
+			tmpcrap = hex(tmp)[3]
+		except IndexError: 
+			print hex(tmp)
+			return read_i2c(hex_address)
+		reorderedtmp = "0x" +tmpcrap +tmpHIGH +'0' +tmpLOW
+		tmp = int(reorderedtmp, 16)
+		tmp = tmp & 4095 
+	
 	return tmp
+	elif len(hex(tmp)) == 4:
+		try:
+			tmpHIGH = hex(tmp)[3]
+			tmpcrap = hex(tmp)[2]
+		except IndexError: 
+			print hex(tmp)
+			return read_i2c(hex_address)
+		reorderedtmp = "0x" +tmpcrap +tmpHIGH +'0' +'0'
+		tmp = int(reorderedtmp, 16)
+		tmp = tmp & 4095 
+		return tmp
+	elif len(hex(tmp)) == 3:
+		try:
+			tmpHIGH = hex(tmp)[2]
+		except IndexError: 
+			print hex(tmp)
+			return read_i2c(hex_address)
+		reorderedtmp = "0x" +'0' +tmpHIGH +'0' +'0'
+		tmp = int(reorderedtmp, 16)
+		tmp = tmp & 4095 
+		return tmp
 
-def timer(n):## i havent decided if i should just make a timer function yet, will see if it is needed.
-	
-	
-	while n > 0:
-		n -= 1
-		sleep.time(0.994)
-	return 
 
 def signal_filter(input_array):
 		
@@ -141,21 +168,6 @@ def signal_filter(input_array):
 		return ((sort[length/2] + sort[(length/2) -1]) / 2.0)
 	else:
 		return sort[length/2]
-
-def calibration_mode():
-	while True:
-		resp = calibrate_respiratory()
-		resp = True
-		skin = calibrate_skin_conduct('f')
-		time.sleep(1)
-		if resp == True and skin == True:
-			break
-	print "Both settings have been successfully calibrated"
-	print "Please press i to enter interview mode"
-	while True:
-		key = check_key()
-		if key == "i":
-	    		return
 
 def cubic_spline_hr(xtime, yresults):
 	x = np.arange(xtime)
@@ -171,65 +183,35 @@ def cubic_spline_hr(xtime, yresults):
 	plt.title('Heart Rate Cubic Spline interpolation')
 	plt.show()
 
-def interview_mode(): ## this should be pretty much finished. Added ways to calculate HR and RR. 
-					  # All funcs that should now return a value do, also
-	start = time.time()
+def calibration_mode():  ##Should be finished!
+	while True:
+		resp = calibrate_respiratory()
+		skin = calibrate_skin_conduct('f')
+		temp = check_temp_hr_calib('f')
+		temp_monitor_LED(temp)
+		time.sleep(1)
+		if resp == True and skin == True:
+			break
+	print "Both settings have been successfully calibrated"
+	print "Please press i to enter interview mode"
 	while True:
 		key = check_key()
-		if key == "c":
-		    return
-		temp = check_temp(key)
-		output.append(temp)
-		temp_monitor_LED(temp)
-		check_heart_rate()
-		end_heart = time.time()
-		elapsed = start-end_heart
-		heart_rate = heart_counter/elapsed
-		hr_array.append(heart_rate)
-		reading += 1
-		cubic_spline_hr(reading, hr_array)
-		check_respiration()
-		end_resp = time.time()
-		elapsed = start-end_resp
-		resp_rate = resp_counter/elapsed
-		output.append(resp_rate)
-		#output.append(check_skin_conductance())
-		output.append(check_button_presses())
-		f = open('results.csv', 'w')
-		for val in output:
-			f.write(str(val) + ',')
-		f.write('\n')
-		f.close()
-		time.sleep(1)
+		if key == "i":
+	    		return
 
 def calibrate_respiratory():
 	returned_value = read_i2c(0x10)
-	if returned_value > 60 and returned_value < 80:
-			print "The respiratory voltage has been calibrated"
-			time.sleep(1)
-			return True
-	elif returned_value < 60:
+	print "resp calibrate", returned_value
+	if returned_value > 1196 and returned_value < 1304:
+		print "The respiratory voltage has been calibrated"
+		time.sleep(1)
+		return True
+	elif returned_value < 1196:
 		print "Increase the variable resistor"
 		time.sleep(1)
 	else:
 		print "Decrease the variable resistor"
 		time.sleep(1)
-
-def RRfilter():
-	global resp_counter
-	percentage = 90
-	## change to lst[1],lst[0]
-	lst = []
-	while len(lst) < 2:
-		temp = read_i2c(0x10)
-		lst.append(temp)
-	percentage_change = float(lst[1] - lst[0]) / abs(lst[0]) * 100
-	
-	if abs(percentage_change) > percentage:
-		return None
-	else:
-		resp_counter += 1
-		return resp_counter
 
 def calibrate_skin_conduct(filter_char):
 	unsorted = read_i2c(0x40)
@@ -242,16 +224,158 @@ def calibrate_skin_conduct(filter_char):
 			temp.append(read_i2c(0x40))
 		returned_value = signal_filter(temp)
 		print "skin calibrate", returned_value
-		if returned_value > 60 and returned_value < 80:
+		if returned_value > 1700 and returned_value < 2300:
 			print "The skin voltage has been calibrated"
 			time.sleep(1)
 			return True
-		elif returned_value < 60:
+		elif returned_value < 1700:
 			print "Increase the variable resistor"
 			time.sleep(1)
 		else:
 			print "Decrease the variable resistor"
 			time.sleep(1)
+
+def check_temp_hr_calib(filter_char):
+	unsorted = read_i2c(0x80)
+	temp = []
+	if filter_char == 'u':
+		print unsorted
+		return unsorted
+	else:
+		while len(temp) <11:
+			temp.append(read_i2c(0x20))
+		returned_value = signal_filter(temp)
+		return returned_value
+
+def temp_monitor_LED(temperature):
+	if temperature < 500:
+		GPIO.output(5,True)	#led0
+		GPIO.output(6, False)	#led1
+		GPIO.output(12, False)	#led2
+		GPIO.output(13, False)	#led3
+		GPIO.output(16, False)	#led4
+		GPIO.output(19, False)	#led5
+		GPIO.output(20, False) 	#led6
+		GPIO.output(26, False)	#led7
+
+	elif temperature >500 and temperature < 1000:
+		GPIO.output(5, True)
+		GPIO.output(6, True)
+		GPIO.output(12, False)
+		GPIO.output(13, False)
+		GPIO.output(16, False)
+		GPIO.output(19, False)
+		GPIO.output(20, False)
+		GPIO.output(26, False)
+
+	elif temperature >1000 and temperature < 1500:
+		GPIO.output(5, True)
+		GPIO.output(6, True)
+		GPIO.output(12, True)
+		GPIO.output(13, False)
+		GPIO.output(16, False)
+		GPIO.output(19, False)
+		GPIO.output(20, False)
+		GPIO.output(26, False)
+
+	elif temperature >1500 and temperature < 2000:
+		GPIO.output(5, True)
+		GPIO.output(6, True)
+		GPIO.output(12, True)
+		GPIO.output(13, True)
+		GPIO.output(16, False)
+		GPIO.output(19, False)
+		GPIO.output(20, False)
+		GPIO.output(26, False)
+
+	elif temperature >2000 and temperature < 2500:
+		GPIO.output(5, True)
+		GPIO.output(6, True)
+		GPIO.output(12, True)
+		GPIO.output(13, True)
+		GPIO.output(16, True)
+		GPIO.output(19, False)
+		GPIO.output(20, False)
+		GPIO.output(26, False)
+	
+	elif temperature >2500 and temperature < 3000:
+		GPIO.output(5, True)
+		GPIO.output(6, True)
+		GPIO.output(12, True)
+		GPIO.output(13, True)
+		GPIO.output(16, True)
+		GPIO.output(19, True)
+		GPIO.output(20, False)
+		GPIO.output(26, False)
+
+	elif temperature >3000 and temperature < 3500:
+		GPIO.output(5, True)
+		GPIO.output(6, True)
+		GPIO.output(12, True)
+		GPIO.output(13, True)
+		GPIO.output(16, True)
+		GPIO.output(19, True)
+		GPIO.output(20, True)
+		GPIO.output(26, False)
+
+	elif temperature >3500:
+		GPIO.output(5, True)
+		GPIO.output(6, True)
+		GPIO.output(12, True)
+		GPIO.output(13, True)
+		GPIO.output(16, True)
+		GPIO.output(19, True)
+		GPIO.output(20, True)
+		GPIO.output(26, True)
+
+	else:
+		GPIO.output(5, False)
+		GPIO.output(6, False)
+		GPIO.output(12, False)
+		GPIO.output(13, False)
+		GPIO.output(16, False)
+		GPIO.output(19, False)
+		GPIO.output(20, False)
+		GPIO.output(26, False)
+	
+	return
+
+def interview_mode(): ## this should be pretty much finished. Added ways to calculate HR and RR. 
+					  # All funcs that should now return a value do, also
+	global output
+	reading = 0
+	start = time.time()
+	while True:
+		key = 'f'
+		#temp = check_temp(key)
+		#output.append(temp)
+		#print "temp done"
+		check_heart_rate()
+		end_heart = time.time()
+		elapsed = start-end_heart
+		heart_rate = heart_counter/elapsed
+		hr_array.append(heart_rate)
+		output.append(heart_rate)
+		print "hr done"
+		#reading += 1
+		#cubic_spline_hr(reading, hr_array)
+		#check_respiration()
+		#end_resp = time.time()
+		#elapsed = start-end_resp
+		#resp_rate = resp_counter/elapsed
+		#output.append(resp_rate)
+		#print "resp done"
+		#output.append(check_skin_conductance())
+		#print "skin done"
+		#output.append(check_button_presses())
+		#print "buttons done"
+		#f = open('results.csv', 'w')
+		#fileWriter = csv.writer(f)
+		#fileWriter.writerow(output)
+		#f.close()
+		#print "file writing done"
+		output = []
+		time.sleep(1)
 
 def check_key():  #theoretically complete
     char = getch()
@@ -284,6 +408,8 @@ def switch_debounce(port):
   				return("question asked at ", datetime.datetime.now().time())
   			elif port == 4:
   				return("question answered at ", datetime.datetime.now().time())
+  		else:
+  			return None
 
 def check_temp(filter_char):
 	unsorted = read_i2c(0x20)
@@ -298,100 +424,6 @@ def check_temp(filter_char):
 		print returned_value
 		return returned_value
 
-
-def temp_monitor_LED(temperature):
-	if temperature < 25:
-		GPIO.output(5,True)	#led0
-		GPIO.output(6, False)	#led1
-		GPIO.output(12, False)	#led2
-		GPIO.output(13, False)	#led3
-		GPIO.output(16, False)	#led4
-		GPIO.output(19, False)	#led5
-		GPIO.output(20, False) 	#led6
-		GPIO.output(26, False)	#led7
-
-	elif temperature >25 and temperature < 50:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, False)
-		GPIO.output(13, False)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-
-	elif temperature >50 and temperature < 75:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, False)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-
-	elif temperature >75 and temperature < 100:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-
-	elif temperature >100 and temperature < 125:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-	
-	elif temperature >125 and temperature < 150:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, True)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-
-	elif temperature >150 and temperature < 175:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, True)
-		GPIO.output(20, True)
-		GPIO.output(26, False)
-
-	elif temperature >175:
-		GPIO.output(5, True)
-		GPIO.output(6, True)
-		GPIO.output(12, True)
-		GPIO.output(13, True)
-		GPIO.output(16, True)
-		GPIO.output(19, True)
-		GPIO.output(20, True)
-		GPIO.output(26, True)
-
-	else:
-		GPIO.output(5, False)
-		GPIO.output(6, False)
-		GPIO.output(12, False)
-		GPIO.output(13, False)
-		GPIO.output(16, False)
-		GPIO.output(19, False)
-		GPIO.output(20, False)
-		GPIO.output(26, False)
-	
-	return
-
 def check_heart_rate(): # we need something similar to the RR filter here I think
 	return HRFilter()
 
@@ -402,6 +434,7 @@ def HRFilter():
 	lst = []
 	while len(lst) < 2:
 		temp = read_i2c(0x80)
+		print temp
 		lst.append(temp)
 	percentage_change = float(lst[1] - lst[0]) / abs(lst[0]) * 100
 	
@@ -411,12 +444,28 @@ def HRFilter():
 		heart_counter += 1
 		return heart_counter
 
-def check_respiration():
-	print "respiratory output", RRfilter()
+def check_respiration(): #FUCKING DONE
+	RRfilter()
+
+def RRfilter():
+	global resp_counter
+	percentage = 20
+	## change to lst[1],lst[0]
+	lst = []
+	while len(lst) < 2:
+		temp = read_i2c(0x10)
+		lst.append(temp)
+		time.sleep(0.5)
+	percentage_change = float(lst[1] - lst[0]) / abs(lst[0]) * 100
+	
+	if abs(percentage_change) < percentage:
+		return None
+	else:
+		resp_counter += 1
+		return resp_counter
 
 def check_skin_conductance():
-	print "skin check func working"
-	print read_i2c(0x40)
+	return read_i2c(0x40)
 
 ## Main Loop
 '''
