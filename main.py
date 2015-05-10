@@ -20,6 +20,22 @@ with arbitrary hex values.
 *Merged Antony's filter changes for temperature and respiratory rate.
 28/04/15
 *Small update to change the hex values for the inputs we haven't worked on yet to be their correct values
+10/5/15
+*Missed a few updates but basically everything is finished now. 
+*All filters implemented
+*File writing and reading (see cleanmultigraph.py)
+*Graphs!!
+*Calibration
+*Moved LED temp monitor so it uses the correct input and is in the right place (i.e. calibration)
+*Cleaned up calibration mode so it only requires a key press once both resistors are
+calibrated
+*Cleaned up interview mode so it no longer requires a keypress at all! This means the whole thing is
+much smoother. Also removed the time.sleep(0.5) as a delay is not required when using the actual
+system, this was jkust for testing.
+*added a quick f.close() just after we initialise the results.csv file so it isn't constantly open!
+*Cleaned up a bunch of random commented out sections of code.
+*Deleted imports that are not used in this python module. They are instead used in cleanmultigraph.py
+*Total line count: 461, including these comments. Blimey.
 '''
 
 ## Imports
@@ -28,9 +44,6 @@ import smbus
 import time
 import RPi.GPIO as GPIO
 import datetime
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy import interpolate
 import csv
  
  
@@ -85,6 +98,8 @@ reading = 0
 
 ## Initialise file
 f = open('results.csv', 'w')
+f.close()
+
 ##function definitions
 
 def read_i2c(hex_address):
@@ -138,7 +153,6 @@ def read_i2c(hex_address):
 		tmp = tmp & 4095 
 		return tmp
 
-
 def signal_filter(input_array):
 		
 	sort = input_array
@@ -151,20 +165,6 @@ def signal_filter(input_array):
 		return ((sort[length/2] + sort[(length/2) -1]) / 2.0)
 	else:
 		return sort[length/2]
-
-def cubic_spline_hr(xtime, yresults):
-	x = np.arange(xtime)
-	y = np.arange(yresults)
-	tck = interpolate.splrep(x, y, s=0)
-	xnew = np.arange(xtime)
-	ynew = interpolate.splev(xnew, tck, der=0)
-
-	plt.figure()
-	plt.plot(x,y,'x',xnew,ynew,xnew,np.sin(xnew),x,y,'b')
-	plt.legend(['Linear', 'Cubic Spline', 'True'])
-	plt.axis([-0.05, 6.33, -1.05, 1.05])
-	plt.title('Heart Rate Cubic Spline interpolation')
-	plt.show()
 
 def calibration_mode():  ##Should be finished!
 	while True:
@@ -323,8 +323,7 @@ def temp_monitor_LED(temperature):
 	
 	return
 
-def interview_mode(): ## this should be pretty much finished. Added ways to calculate HR and RR. 
-					  # All funcs that should now return a value do, also
+def interview_mode(): 					  
 	global output
 	reading = 0
 	start = time.time()
@@ -338,18 +337,14 @@ def interview_mode(): ## this should be pretty much finished. Added ways to calc
 		end_heart = time.time()
 		elapsed = start-end_heart
 		heart_rate = abs(float(heart_counter/elapsed) * 60)
-		#hr_array.append(heart_rate)
 		output.append(heart_rate)
 		print "heart done"
-		reading += 1
-		#cubic_spline_hr(reading, hr_array)
 		check_respiration()
 		end_resp = time.time()
 		elapsed = start-end_resp
 		resp_rate = abs(float(resp_counter/elapsed) * 60)
 		output.append(resp_rate)
 		print "resp done"
-		output.append(check_skin_conductance())
 		print "skin done"
 		output.append(check_button_presses())
 		print "buttons done"
@@ -359,9 +354,8 @@ def interview_mode(): ## this should be pretty much finished. Added ways to calc
 		f.close()
 		print "file writing done"
 		output = []
-		time.sleep(0.5)
 
-def check_key():  #theoretically complete
+def check_key():
     char = getch()
     if char == 'c' or char == 'i' or char == 'u' or char == 'f':
         #print "Key pressed is " + char
@@ -372,7 +366,6 @@ def check_key():  #theoretically complete
 def check_button_presses():
 	button1 = 0
 	button2 = 0
-	#global output
 	asked = switch_debounce(17)
 	if asked != None:
 		button1 = 1
@@ -385,10 +378,8 @@ def switch_debounce(port):
 	count = 0
 	prev_input = 0
 	while count >= 3:
-  		#take a reading
 		buttoninput = GPIO.input(port)
   		time.sleep(0.05)
-  		#if the last reading was low and this one high, print
   		if (prev_input and (not buttoninput)):
   			if port == 17:
   				return("question asked at ", datetime.datetime.now().time())
@@ -411,13 +402,12 @@ def check_temp(filter_char):
 		returned_value = signal_filter(temp)
 		return returned_value
 
-def check_heart_rate(): # we need something similar to the RR filter here I think
+def check_heart_rate():
 	return HRFilter()
 
 def HRFilter():
 	global heart_counter
-	percentage = 90 #need to adjust this value for hr
-	## change to lst[1],lst[0]
+	percentage = 90
 	lst = []
 	while len(lst) < 8:
 		temp = read_i2c(0x80)
@@ -431,13 +421,12 @@ def HRFilter():
 		else: 
 			continue
 
-def check_respiration(): #FUCKING DONE
+def check_respiration():
 	RRfilter()
 
 def RRfilter():
 	global resp_counter
 	percentage = 20
-	## change to lst[1],lst[0]
 	lst = []
 	while len(lst) < 2:
 		temp = read_i2c(0x10)
@@ -451,8 +440,17 @@ def RRfilter():
 		resp_counter += 1
 		return resp_counter
 
-def check_skin_conductance():
-	return read_i2c(0x40)
+def check_skin_conductance(filter_char):
+	unsorted = read_i2c(0x40)
+	temp = []
+	if filter_char == 'u':
+		print unsorted
+		return unsorted
+	else:
+		while len(temp) <11:
+			temp.append(read_i2c(0x20))
+		returned_value = signal_filter(temp)
+		return returned_value
 
 ## Main Loop
 
