@@ -345,6 +345,7 @@ def interview_mode():
 		resp_rate = abs(float(resp_counter/elapsed) * 60)
 		output.append(resp_rate)
 		print "resp done"
+		output.append(check_skin_conductance(key))
 		print "skin done"
 		output.append(check_button_presses())
 		print "buttons done"
