@@ -23,7 +23,7 @@ with arbitrary hex values.
 10/5/15
 *Missed a few updates but basically everything is finished now. 
 *All filters implemented
-*File writing and reading (see cleanmultigraph.py)
+*File writing and reading (see results1.csv and ____graph.py files)
 *Graphs!!
 *Calibration
 *Moved LED temp monitor so it uses the correct input and is in the right place (i.e. calibration)
@@ -32,7 +32,7 @@ calibrated
 *Cleaned up interview mode so it no longer requires a keypress at all! This means the whole thing is
 much smoother. Also removed the time.sleep(0.5) as a delay is not required when using the actual
 system, this was jkust for testing.
-*added a quick f.close() just after we initialise the results.csv file so it isn't constantly open!
+*added a quick f.close() just after we initialise the results.csv file so it isn't constantly open!
 *Cleaned up a bunch of random commented out sections of code.
 *Deleted imports that are not used in this python module. They are instead used in cleanmultigraph.py
 *Total line count: 461, including these comments. Blimey.
@@ -97,7 +97,7 @@ hr_array = []
 reading = 0
 
 ## Initialise file
-f = open('results.csv', 'w')
+f = open('results1.csv', 'w')
 f.close()
 
 ##function definitions
@@ -349,7 +349,7 @@ def interview_mode():
 		print "skin done"
 		output.append(check_button_presses())
 		print "buttons done"
-		f = open('results.csv', 'a')
+		f = open('results1.csv', 'a')
 		fileWriter = csv.writer(f)
 		fileWriter.writerow(output)
 		f.close()
